@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from xgboost import XGBRegressor
 
 # Load stock history data
-data = pd.read_csv("E:\\projects\\coca cola\\data\\Coca-Cola_stock_history.csv")
+data = pd.read_csv("E:\\github\\unified_mentorship_projects\\coca-cola-stock-predictor\\data\\Coca-Cola_stock_history.csv")
 data['Date'] = pd.to_datetime(data['Date'], errors='coerce').dt.tz_localize(None)
 data.sort_values('Date', inplace=True)
 data.fillna(method='ffill', inplace=True)
@@ -18,20 +19,27 @@ data['Daily_Return'] = data['Close'].pct_change()
 data['Volatility'] = data['Daily_Return'].rolling(window=20).std()
 data.dropna(inplace=True)
 
-# ML Features and Target
+# Define features and target
 features = ['Open', 'High', 'Low', 'Volume', 'Dividends', 'Stock Splits',
             'MA_20', 'MA_50', 'Daily_Return', 'Volatility']
-X = data[features]
-y = data['Close']
+target = 'Close'
 
-# Model Training
-model = RandomForestRegressor(n_estimators=100, random_state=42)
-model.fit(X, y)
+X = data[features]
+y = data[target]
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+
+# Train XGBoost model
+model = XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42)
+model.fit(X_train, y_train)
+
+# Predict latest value
 latest_input = X.iloc[[-1]]
 latest_prediction = model.predict(latest_input)
 
 # Load static financial info
-info = pd.read_csv("E:\\projects\\coca cola\\data\\Coca-Cola_stock_info.csv").dropna().reset_index(drop=True)
+info = pd.read_csv("E:\\github\\unified_mentorship_projects\\coca-cola-stock-predictor\\data\\Coca-Cola_stock_info.csv").dropna().reset_index(drop=True)
 
 # Streamlit UI
 st.set_page_config(page_title="Coca-Cola Stock Prediction", layout="wide")
